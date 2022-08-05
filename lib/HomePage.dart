@@ -74,6 +74,37 @@ class CurrentWeather extends StatelessWidget {
               ),
             ],
           ),
+          Container(
+            margin: const EdgeInsets.only(top: 10),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              border: Border.all(width: 0.3, color: Colors.white),
+              borderRadius: BorderRadius.circular(30),
+            ),
+            child: const Text(
+              "Updated 10 mins ago",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Container(
+              child: Stack(
+            children: [
+              Image(
+                image: AssetImage(currentTemp.image!),
+                fit: BoxFit.fill,
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                left: 0,
+                child: Center(
+                  child: Column(),
+                ),
+              )
+            ],
+          ))
         ],
       ),
     );

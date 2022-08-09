@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+
 class Weather {
   final int? max;
   final int? min;
@@ -25,70 +29,70 @@ class Weather {
       this.location});
 }
 
-List<Weather> todayWeather = [
-  Weather(current: 23, image: "assets/rainy_2d.png", time: "10:00"),
-  Weather(current: 21, image: "assets/thunder_2d.png", time: "11:00"),
-  Weather(current: 22, image: "assets/rainy_2d.png", time: "12:00"),
-  Weather(current: 19, image: "assets/snow_2d.png", time: "01:00")
-];
+const String apiKey = "45865970ebbfbc127eb2a16dd7f753e7";
 
-Weather currentTemp = Weather(
-    current: 21,
-    image: "assets/thunder.png",
-    name: "Thunderstorm",
-    day: "Monday, 17 May",
-    wind: 13,
-    humidity: 24,
-    chanceRain: 87,
-    location: "Jakarta");
+Future<List> fetchData(String lat, String lon, String city) async {
+  var url =
+      "https://api.openweathermap.org/data/2.5/onecall?lat=$lat&lon=$lon&units=metric&appid=$apiKey";
+  var response = await http.get(Uri.parse(url));
+  DateTime date = DateTime.now();
+  if (response.statusCode == 200) {
+    var res = json.decode(response.body);
 
-Weather tomorrowTemp = Weather(
-  max: 20,
-  min: 17,
-  image: "assets/sunny.png",
-  name: "Sunny",
-  wind: 9,
-  humidity: 31,
-  chanceRain: 20,
-);
+    
+    var current = res["current"];
+    Weather currentTemp = Weather(
+      current: current["temp"]?.round() ?? 0,
+      name: current["weather"][0]["main"].toString(),
+      day: DateFormat("EEEE dd MMMM").format(date),
+      wind: current["wind_speed"]?.round() ?? 0,
+      humidity: current["humidity"]?.round() ?? 0,
+      chanceRain: current["uvi"]?.round() ?? 0,
+      location: city,
+      image: current["weather"][0]["icon"].toString(),
+    );
 
-List<Weather> sevenDay = [
-  Weather(
-      max: 20,
-      min: 14,
-      image: "assets/rainy_2d.png",
-      day: "Mon",
-      name: "Rainy"),
-  Weather(
-      max: 22,
-      min: 16,
-      image: "assets/thunder_2d.png",
-      day: "Tue",
-      name: "Thunder"),
-  Weather(
-      max: 19,
-      min: 13,
-      image: "assets/rainy_2d.png",
-      day: "Wed",
-      name: "Rainy"),
-  Weather(
-      max: 18, min: 12, image: "assets/snow_2d.png", day: "Thu", name: "Snow"),
-  Weather(
-      max: 23,
-      min: 19,
-      image: "assets/sunny_2d.png",
-      day: "Fri",
-      name: "Sunny"),
-  Weather(
-      max: 25,
-      min: 17,
-      image: "assets/rainy_2d.png",
-      day: "Sat",
-      name: "Rainy"),
-  Weather(
-      max: 21,
-      min: 18,
-      image: "assets/thunder_2d.png",
-      day: "Sun",
-      name: "Thunder")
-];
+    List<Weather> todayWeather = [];
+
+    int hour = int.parse(DateFormat("HH").format(date));
+    for (int i = 0; i < 4; i++) {
+      var temp = res["hourly"];
+      var hourly = Weather(
+          current: temp[i]["temp"]?.round() ?? 0,
+          image: temp[i]["weather"][0]["icon"].toString(),
+          time: "${Duration(hours: hour + (i + 1)).toString().split(":")[0]}:00");
+      todayWeather.add(hourly);
+    }
+
+    // tomorrwow's weather
+    var daily = res["daily"][0];
+    Weather tomorrowTemp = Weather(
+        max: daily["temp"]["max"]?.round() ?? 0,
+        min: daily["temp"]["min"]?.round() ?? 0,
+        image: daily["weather"][0]["icon"].toString(),
+        name: daily["weather"][0]["main"].toString(),
+        wind: daily["wind_speed"]?.round() ?? 0,
+        humidity: daily["rain"]?.round() ?? 0,
+        chanceRain: daily["uvi"]?.round() ?? 0);
+
+    // 7 days
+    List<Weather> sevenDays = [];
+    for (int i = 0; i < 8; i++) {
+      String day = DateFormat("EEEE")
+          .format(DateTime(date.year, date.month, date.day + (i + 1)))
+          .substring(0, 3);
+      var temp = res["daily"][i];
+      var hourly = Weather(
+        max: temp["temp"]["max"]?.round() ?? 0,
+        min: temp["temp"]["min"]?.round() ?? 0,
+        image: temp["weather"][0]["icon"].toString(),
+        name: temp["weather"][0]["main"].toString(),
+        day: day,
+      );
+      sevenDays.add(hourly);
+    }
+    return [currentTemp, todayWeather, tomorrowTemp, sevenDays];
+  }
+
+  return [null, null, null, null];
+}
